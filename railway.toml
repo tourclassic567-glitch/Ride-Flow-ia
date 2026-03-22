@@ -1,14 +1,5 @@
-# Nixpacks Configuration
+[build]
+builder = "nixpacks"
 
-# This configures Nixpacks for Node.js deployment
-
-builds:
-  - type: "npm"
-    env:
-      NODE_VERSION: "16"
-
-features:
-  - install:
-      packages:
-        - nodejs
-        - npm
+[deploy]
+startCommand = "npm start"
