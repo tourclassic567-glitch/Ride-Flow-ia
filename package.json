@@ -1,1 +1,18 @@
-{\n  "name": "ride-flow-ia",\n  "version": "1.0.0",\n  "main": "server.js",\n  "scripts": {\n    "start": "node server.js"\n  },\n  "dependencies": {\n    "express": "^4.17.1",\n    "ws": "^8.3.0"\n  }\n}
+{
+  "name": "Ride-Flow-ia",
+  "version": "1.0.0",
+  "description": "A ride flow application",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "health": "echo 'Health check passed'"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "ws": "^7.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "pg": "^8.7.1",
+    "stripe": "^8.174.0"
+  }
+}
