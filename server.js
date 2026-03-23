@@ -1,17 +1,16 @@
 const express = require('express');
 const cors = require('cors');
-const morgan = require('morgan');
-const healthCheck = require('health-check');
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(morgan('combined'));
 
 // Health Check Endpoint
-app.get('/health', healthCheck);
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', version: '1.0.0' });
+});
 
 // Example endpoint
 app.get('/api/example', (req, res) => {

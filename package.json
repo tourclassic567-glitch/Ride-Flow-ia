@@ -2,9 +2,9 @@
   "name": "Ride-Flow-ia",
   "version": "1.0.0",
   "description": "A ride flow application",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node server.js",
     "health": "echo 'Health check passed'"
   },
   "dependencies": {
