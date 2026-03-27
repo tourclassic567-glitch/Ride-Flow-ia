@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { findNearestDriver } = require('../services/matching');
-const { broadcast } = require('../services/websocket');
 const { validateRideRequest, validateRideMatch } = require('../middleware/validate');
+const orchestrator = require('../flows/orchestrator');
 
 // POST /ride/request
 router.post('/request', validateRideRequest, async (req, res, next) => {
@@ -15,33 +14,20 @@ router.post('/request', validateRideRequest, async (req, res, next) => {
     const price_per_mile = 1.50;
     const estimated_price = parseFloat((base_fare + estimated_miles * price_per_mile).toFixed(2));
 
-    const result = await db.query(
-      `INSERT INTO rides (passenger_id, pickup_location, dropoff_location, price, status)
-       VALUES ($1, $2, $3, $4, 'requested')
-       RETURNING id, status, pickup_location, dropoff_location, price, created_at`,
-      [passenger_id, pickup_location, dropoff_location, estimated_price]
+    const result = await orchestrator.run(
+      'ride-request-flow',
+      { passenger_id, pickup_location, dropoff_location, estimated_price },
+      { maxRetries: 1 } // single attempt for DB inserts
     );
 
-    if (result) {
-      const ride = result.rows[0];
-      return res.status(201).json({
-        ride_id: ride.id,
-        status: ride.status,
-        pickup_location: ride.pickup_location,
-        dropoff_location: ride.dropoff_location,
-        estimated_price: parseFloat(ride.price),
-        created_at: ride.created_at,
-      });
-    }
-
-    // Mock response when DB not available
+    const ride = result.ride;
     return res.status(201).json({
-      ride_id: Date.now(),
-      status: 'requested',
-      pickup_location,
-      dropoff_location,
-      estimated_price,
-      created_at: new Date().toISOString(),
+      ride_id: ride.id,
+      status: ride.status,
+      pickup_location: ride.pickup_location,
+      dropoff_location: ride.dropoff_location,
+      estimated_price: parseFloat(ride.price),
+      created_at: ride.created_at,
     });
   } catch (err) {
     next(err);
@@ -53,19 +39,17 @@ router.post('/match', validateRideMatch, async (req, res, next) => {
   try {
     const { ride_id } = req.body;
 
-    const driver = await findNearestDriver(ride_id);
-
-    broadcast({
-      type: 'RIDE_MATCHED',
-      ride_id,
-      driver_id: driver.id,
-    });
+    const result = await orchestrator.run(
+      'ride-match-flow',
+      { ride_id },
+      { maxRetries: 2 }
+    );
 
     return res.json({
       ride_id,
-      driver_id: driver.id,
-      status: 'matched',
-      estimated_arrival: '5 minutes',
+      driver_id: result.driver_id,
+      status: result.status || 'matched',
+      estimated_arrival: result.estimated_arrival || '5 minutes',
     });
   } catch (err) {
     next(err);
