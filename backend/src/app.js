@@ -5,6 +5,7 @@ const rideRoutes = require('./routes/ride');
 const pricingRoutes = require('./routes/pricing');
 const errorHandler = require('./middleware/errorHandler');
 const hmacAuth = require('./middleware/hmacAuth');
+const commandGuard = require('./middleware/commandGuard');
 
 const app = express();
 
@@ -24,8 +25,8 @@ app.use('/api/radar', require('./routes/radar'));
 // Telemetry – events, commands, and error tracking
 app.use('/api/telemetry', require('./routes/telemetry'));
 
-// Public command endpoint – accepts unauthenticated external commands
-app.use('/api/command', require('./routes/command'));
+// Command endpoint – guarded by API-key auth + structural validation (commandGuard)
+app.use('/api/command', commandGuard, require('./routes/command'));
 
 // Protected event endpoint – requires valid HMAC signature
 app.use('/api/events', hmacAuth, require('./routes/events'));

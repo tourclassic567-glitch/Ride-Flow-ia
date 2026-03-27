@@ -4,7 +4,7 @@
  * POST /api/command
  *
  * Accepts commands directed at the Ride-Flow system.
- * This route is publicly accessible – no HMAC authentication required.
+ * All requests must pass through commandGuard (API-key auth + structural validation).
  *
  * Body (JSON):
  *   command  {string}  – command name or instruction (optional)
@@ -12,9 +12,13 @@
  *                        dispatch a named flow through the orchestrator.
  *                        When omitted the request is accepted and an executionId
  *                        is returned with no flow dispatched.
- *   id       {string}  – optional command identifier
- *   type     {string}  – optional command type label
+ *   id       {string}  – caller/session identifier (required, validated by commandGuard)
+ *   type     {string}  – service type: ride | cargo | delivery | system (required, validated by commandGuard)
  *   payload  {object}  – command-specific parameters (optional)
+ *
+ * Authentication:
+ *   All requests must include x-api-key header matching MIKE_API_KEY env var.
+ *   Validated upstream by commandGuard middleware.
  *
  * Response:
  *   200 { status: "command accepted", executionId, id, type, command, keyId, timestamp }
@@ -49,8 +53,6 @@ const { sendToMike } = require('../integrations/mikeForwarder');
 const orchestrator = require('../flows/orchestrator');
 const lockState = require('../security/lockState');
 
-const DEFAULT_COMMAND_TYPE = 'command';
-
 // Map from the EXECUTE:<TARGET> token to the registered flow name in engine.js
 const FLOW_NAME_MAP = {
   RIDE_FLOW: 'ride-request-flow',
@@ -76,16 +78,22 @@ function parseParams(tokens) {
 }
 
 router.post('/', async (req, res) => {
-  const { command, id, type, payload } = req.body;
+  // req.mike is pre-validated and normalised by commandGuard.
+  // Use it as the authoritative source for all request fields.
+  const mike = req.mike;
+  const id = mike.session_id;
+  const type = mike.service_type;
+  const pld = mike.execution_data;
 
-  if (command !== undefined && (typeof command !== 'string' || !command.trim())) {
-    telemetry.recordError('command', 'invalid command field');
-    return res.status(400).json({ error: 'Bad Request', detail: 'command must be a non-empty string' });
-  }
+  // commandGuard normalises an absent command to the string "default" in
+  // req.mike.action, which would conflict with EXECUTE: dispatch and the
+  // null-command response contract. Read req.body.command directly so we can
+  // distinguish "no command" (null) from an explicit command string.
+  const rawCommand = req.body.command;
+  const cmd = rawCommand ? rawCommand.trim() : null;
 
-  const cmd = command ? command.trim() : null;
-  const pld = payload || {};
-  const keyId = req.authenticatedKeyId || null;
+  // The auth token from commandGuard serves as the caller identity.
+  const keyId = req.headers['x-api-key'] || null;
   const timestamp = new Date().toISOString();
 
   // Generate a cryptographically secure unique ID for this execution so callers
@@ -132,8 +140,8 @@ router.post('/', async (req, res) => {
   return res.status(200).json({
     status: 'command accepted',
     executionId,
-    id: id || null,
-    type: type || DEFAULT_COMMAND_TYPE,
+    id,
+    type,
     command: cmd,
     keyId,
     timestamp,
