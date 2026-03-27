@@ -7,9 +7,11 @@
  * This route is publicly accessible – no HMAC authentication required.
  *
  * Body (JSON):
- *   command  {string}  – command name or instruction (required)
+ *   command  {string}  – command name or instruction (optional)
  *                        Supports EXECUTE:<FLOW_NAME> [KEY=VALUE …] syntax to
  *                        dispatch a named flow through the orchestrator.
+ *                        When omitted the request is accepted and an executionId
+ *                        is returned with no flow dispatched.
  *   id       {string}  – optional command identifier
  *   type     {string}  – optional command type label
  *   payload  {object}  – command-specific parameters (optional)
@@ -65,12 +67,12 @@ function parseParams(tokens) {
 router.post('/', async (req, res) => {
   const { command, id, type, payload } = req.body;
 
-  if (!command || typeof command !== 'string' || !command.trim()) {
-    telemetry.recordError('command', 'missing or invalid command field');
-    return res.status(400).json({ error: 'Bad Request', detail: 'command field is required' });
+  if (command !== undefined && (typeof command !== 'string' || !command.trim())) {
+    telemetry.recordError('command', 'invalid command field');
+    return res.status(400).json({ error: 'Bad Request', detail: 'command must be a non-empty string' });
   }
 
-  const cmd = command.trim();
+  const cmd = command ? command.trim() : null;
   const pld = payload || {};
   const keyId = req.authenticatedKeyId || null;
   const timestamp = new Date().toISOString();
@@ -81,7 +83,7 @@ router.post('/', async (req, res) => {
 
   // ── EXECUTE:<FLOW> [KEY=VALUE …] dispatch ──────────────────────────────────
   let flowResult = null;
-  if (cmd.toUpperCase().startsWith('EXECUTE:')) {
+  if (cmd && cmd.toUpperCase().startsWith('EXECUTE:')) {
     const parts = cmd.slice('EXECUTE:'.length).trim().split(/\s+/);
     const flowKey = parts[0].toUpperCase();
     const flowName = FLOW_NAME_MAP[flowKey];
