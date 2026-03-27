@@ -8,7 +8,9 @@ const MOCK_DRIVER = {
   longitude: -80.1918,
 };
 
-async function findNearestDriver(ride_id) {
+async function findNearestDriver(rideIdOrObj) {
+  // Accept either a plain ride_id value or an object { ride_id }
+  const ride_id = rideIdOrObj && typeof rideIdOrObj === 'object' ? rideIdOrObj.ride_id : rideIdOrObj;
   const result = await db.query(
     `SELECT * FROM drivers WHERE status = 'online' LIMIT 10`
   );

@@ -1,0 +1,43 @@
+{
+  "name": "payment-process-flow",
+  "version": "1.0.0",
+  "description": "Create a Stripe payment intent for a completed ride and emit payment events",
+  "triggers": ["ride.completed"],
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Get Ride Details",
+      "type": "service",
+      "service": "rides",
+      "method": "getRide",
+      "input": {
+        "ride_id": "$.payload.ride_id"
+      },
+      "onError": "throw",
+      "timeout": 5000
+    },
+    {
+      "id": "step-2",
+      "name": "Create Payment Intent",
+      "type": "service",
+      "service": "payments",
+      "method": "createPaymentIntent",
+      "input": {
+        "amount": "$.step-1.price"
+      },
+      "onError": "throw",
+      "timeout": 10000
+    },
+    {
+      "id": "step-3",
+      "name": "Emit Payment Initiated Event",
+      "type": "event",
+      "event": "payment.initiated",
+      "data": {
+        "ride_id": "$.payload.ride_id",
+        "payment_intent_id": "$.step-2.id",
+        "amount": "$.step-1.price"
+      }
+    }
+  ]
+}

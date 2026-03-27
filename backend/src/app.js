@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const rideRoutes = require('./routes/ride');
 const pricingRoutes = require('./routes/pricing');
+const flowRoutes = require('./routes/flows');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -16,6 +17,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/ride', rideRoutes);
 app.use('/pricing', pricingRoutes);
+app.use('/api/flows', flowRoutes);
 
 app.use(errorHandler);
 

@@ -1,0 +1,67 @@
+{
+  "name": "ride-request-flow",
+  "version": "1.0.0",
+  "description": "Process a new ride request: validate, create record, calculate price, emit event",
+  "triggers": ["user.ride.request"],
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Validate Request",
+      "type": "service",
+      "service": "rides",
+      "method": "validateRequest",
+      "input": {
+        "passenger_id": "$.payload.passenger_id",
+        "pickup": "$.payload.pickup_location",
+        "dropoff": "$.payload.dropoff_location"
+      },
+      "onError": "throw",
+      "timeout": 5000
+    },
+    {
+      "id": "step-2",
+      "name": "Create Ride Record",
+      "type": "service",
+      "service": "rides",
+      "method": "createRide",
+      "input": {
+        "passenger_id": "$.step-1.passengerId",
+        "pickup": "$.step-1.pickup",
+        "dropoff": "$.step-1.dropoff"
+      },
+      "onError": "throw",
+      "timeout": 5000
+    },
+    {
+      "id": "step-3",
+      "name": "Calculate Price",
+      "type": "service",
+      "service": "rides",
+      "method": "calculatePrice",
+      "input": {
+        "ride_id": "$.step-2.ride_id"
+      },
+      "onError": "continue",
+      "timeout": 5000
+    },
+    {
+      "id": "step-4",
+      "name": "Emit Ride Created Event",
+      "type": "event",
+      "event": "ride.created",
+      "data": {
+        "ride_id": "$.step-2.ride_id",
+        "price": "$.step-3.price"
+      }
+    }
+  ],
+  "rollback": [
+    {
+      "onFail": "step-2",
+      "action": "service",
+      "service": "rides",
+      "method": "cancelRide",
+      "input": { "ride_id": "$.step-2.ride_id" }
+    }
+  ]
+}

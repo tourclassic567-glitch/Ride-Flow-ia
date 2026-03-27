@@ -1,0 +1,54 @@
+{
+  "name": "ride-match-flow",
+  "version": "1.0.0",
+  "description": "Match a driver to an existing ride request and broadcast the match event",
+  "triggers": ["ride.requested"],
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Find Nearest Driver",
+      "type": "service",
+      "service": "matching",
+      "method": "findNearestDriver",
+      "input": {
+        "ride_id": "$.payload.ride_id"
+      },
+      "onError": "throw",
+      "timeout": 8000
+    },
+    {
+      "id": "step-2",
+      "name": "Update Ride Status",
+      "type": "service",
+      "service": "rides",
+      "method": "updateStatus",
+      "input": {
+        "ride_id": "$.payload.ride_id",
+        "status": "matched"
+      },
+      "onError": "continue",
+      "timeout": 5000
+    },
+    {
+      "id": "step-3",
+      "name": "Emit Driver Assigned Event",
+      "type": "event",
+      "event": "driver.assigned",
+      "data": {
+        "ride_id": "$.payload.ride_id",
+        "driver_id": "$.step-1.id"
+      }
+    },
+    {
+      "id": "step-4",
+      "name": "Emit Ride Matched Event",
+      "type": "event",
+      "event": "ride.matched",
+      "data": {
+        "ride_id": "$.payload.ride_id",
+        "driver_id": "$.step-1.id",
+        "estimated_arrival": "5 minutes"
+      }
+    }
+  ]
+}
