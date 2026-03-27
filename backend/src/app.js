@@ -21,6 +21,9 @@ app.use('/pricing', pricingRoutes);
 // Radar observability
 app.use('/api/radar', require('./routes/radar'));
 
+// Telemetry – events, commands, and error tracking
+app.use('/api/telemetry', require('./routes/telemetry'));
+
 // Protected routes – require valid HMAC signature
 app.use('/api/command', hmacAuth, require('./routes/command'));
 app.use('/api/events', hmacAuth, require('./routes/events'));

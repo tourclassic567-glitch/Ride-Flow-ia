@@ -4,6 +4,8 @@ const express = require('express');
 const router = express.Router();
 const eventBus = require('../events/eventBus');
 const eventTypes = require('../events/eventTypes');
+const telemetry = require('../observability/telemetry');
+const mikeForwarder = require('../integrations/mikeForwarder');
 
 const KNOWN_EVENTS = new Set(Object.values(eventTypes));
 
@@ -24,13 +26,13 @@ const KNOWN_EVENTS = new Set(Object.values(eventTypes));
 router.post('/emit', (req, res) => {
   const { event, data } = req.body;
 
-  console.log(`[events] EVENT RECEIVED: ${event}`);
-
   if (!event) {
+    telemetry.recordError('event', 'missing event field');
     return res.status(400).json({ success: false, error: 'Missing required field: event' });
   }
 
   if (!KNOWN_EVENTS.has(event)) {
+    telemetry.recordError('event', `unknown event type: ${event}`);
     return res.status(400).json({
       success: false,
       error: `Unknown event type: "${event}". Valid types are: ${[...KNOWN_EVENTS].join(', ')}`,
@@ -38,15 +40,18 @@ router.post('/emit', (req, res) => {
   }
 
   if (data !== undefined && (typeof data !== 'object' || Array.isArray(data) || data === null)) {
+    telemetry.recordError('event', 'invalid data field');
     return res.status(400).json({ success: false, error: 'data must be a plain object' });
   }
 
   const payload = data || {};
 
+  // Record telemetry and forward to MIKE before publishing the internal event
+  telemetry.record('event', { event, data: payload, keyId: req.authenticatedKeyId });
+  mikeForwarder.forward('event', { event, data: payload, keyId: req.authenticatedKeyId });
+
   // Schedule subscriber execution after the response is sent (non-blocking)
   eventBus.publishAsync(event, payload);
-
-  console.log(`[events] EVENT DISPATCHED: ${event}`);
 
   return res.status(202).json({ status: 'event accepted' });
 });

@@ -17,22 +17,32 @@
 
 const express = require('express');
 const router = express.Router();
+const telemetry = require('../observability/telemetry');
+const mikeForwarder = require('../integrations/mikeForwarder');
 
 router.post('/', (req, res) => {
   const { command, payload } = req.body;
 
   if (!command || typeof command !== 'string' || !command.trim()) {
+    telemetry.recordError('command', 'missing or invalid command field');
     return res.status(400).json({ error: 'Bad Request', detail: 'command field is required' });
   }
 
-  console.log(`[command] RECEIVED command="${command}" key="${req.authenticatedKeyId}"`);
+  const cmd = command.trim();
+  const pld = payload || {};
+  const keyId = req.authenticatedKeyId;
+  const timestamp = new Date().toISOString();
+
+  // Record telemetry and forward to MIKE non-blocking
+  telemetry.record('command', { command: cmd, keyId, payload: pld });
+  mikeForwarder.forward('command', { command: cmd, keyId, payload: pld, timestamp });
 
   return res.status(200).json({
     status: 'command accepted',
-    command: command.trim(),
-    keyId: req.authenticatedKeyId,
-    timestamp: new Date().toISOString(),
-    payload: payload || {},
+    command: cmd,
+    keyId,
+    timestamp,
+    payload: pld,
   });
 });
 
