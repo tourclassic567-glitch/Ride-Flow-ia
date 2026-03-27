@@ -5,7 +5,7 @@ const router = express.Router();
 const eventBus = require('../events/eventBus');
 const eventTypes = require('../events/eventTypes');
 const telemetry = require('../observability/telemetry');
-const mikeForwarder = require('../integrations/mikeForwarder');
+const { sendToMike } = require('../integrations/mikeForwarder');
 
 const KNOWN_EVENTS = new Set(Object.values(eventTypes));
 
@@ -48,7 +48,7 @@ router.post('/emit', (req, res) => {
 
   // Record telemetry and forward to MIKE before publishing the internal event
   telemetry.record('event', { event, data: payload, keyId: req.authenticatedKeyId });
-  mikeForwarder.forward('event', { event, data: payload, keyId: req.authenticatedKeyId });
+  setImmediate(() => sendToMike({ event, data: payload, keyId: req.authenticatedKeyId }));
 
   // Schedule subscriber execution after the response is sent (non-blocking)
   eventBus.publishAsync(event, payload);

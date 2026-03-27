@@ -18,7 +18,7 @@
 const express = require('express');
 const router = express.Router();
 const telemetry = require('../observability/telemetry');
-const mikeForwarder = require('../integrations/mikeForwarder');
+const { sendToMike } = require('../integrations/mikeForwarder');
 
 router.post('/', (req, res) => {
   const { command, payload } = req.body;
@@ -35,7 +35,7 @@ router.post('/', (req, res) => {
 
   // Record telemetry and forward to MIKE non-blocking
   telemetry.record('command', { command: cmd, keyId, payload: pld });
-  mikeForwarder.forward('command', { command: cmd, keyId, payload: pld, timestamp });
+  setImmediate(() => sendToMike({ command: cmd, keyId, payload: pld, timestamp }));
 
   return res.status(200).json({
     status: 'command accepted',

@@ -3,96 +3,76 @@
 /**
  * MIKE Forwarder
  *
- * Forwards every event and every command to the external MIKE system
- * in a non-blocking, error-safe manner.
+ * Forwards every event and every command to the external MIKE system.
+ * Signs every outbound payload with HMAC-SHA256 using MIKE_SECRET and
+ * verifies the signed ACK returned by MIKE.
  *
- * Configuration (environment variable):
- *   MIKE_URL – full URL of the MIKE ingestion endpoint
- *              e.g. https://mike.example.com/ingest
+ * Configuration (environment variables):
+ *   MIKE_ENDPOINT – full URL of the MIKE ingestion endpoint
+ *   MIKE_SECRET   – shared secret used to sign payloads and verify ACKs
  *
- * If MIKE_URL is not set the forwarder is silently disabled; no errors
+ * If MIKE_ENDPOINT is not set the forwarder is silently disabled; no errors
  * are raised and the rest of the system continues unaffected.
  *
- * Payload sent to MIKE (JSON POST):
- *   {
- *     source:    "ride-flow",
- *     type:      "event" | "command" | "error",
- *     data:      { ... },       // original payload
- *     timestamp: "<ISO-8601>"
- *   }
- *
  * Execution model:
- *   - Each forward call schedules the HTTP request via setImmediate
- *     so it never delays the caller's HTTP response.
- *   - All errors (network, DNS, timeout, bad status) are caught and
- *     logged; they never propagate to the caller.
+ *   Callers wrap sendToMike in setImmediate so it never delays the HTTP
+ *   response. All errors (network, ACK validation, etc.) are caught and
+ *   logged; they never propagate to the caller.
  */
 
-const http = require('http');
-const https = require('https');
+const crypto = require('crypto');
+const axios = require('axios');
 
-const MIKE_URL = process.env.MIKE_URL || '';
+const MIKE_ENDPOINT = process.env.MIKE_ENDPOINT;
+const MIKE_SECRET = process.env.MIKE_SECRET;
 
-/**
- * Send a fire-and-forget POST to MIKE.
- *
- * @param {string} type  – "event" | "command" | "error"
- * @param {object} data  – payload to forward
- */
-function forward(type, data) {
-  if (!MIKE_URL) {
+function sign(payload) {
+  return crypto
+    .createHmac('sha256', MIKE_SECRET)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+}
+
+function verifyAck(ack) {
+  if (!ack || !ack.payload || !ack.signature) return false;
+
+  const expected = crypto
+    .createHmac('sha256', MIKE_SECRET)
+    .update(JSON.stringify(ack.payload))
+    .digest('hex');
+
+  return expected === ack.signature;
+}
+
+async function sendToMike(payload) {
+  if (!MIKE_ENDPOINT || !MIKE_SECRET) {
     // MIKE not configured – skip silently
     return;
   }
 
-  // Defer the network call so it never blocks the caller
-  setImmediate(() => {
-    try {
-      const body = JSON.stringify({
-        source: 'ride-flow',
-        type,
-        data,
-        timestamp: new Date().toISOString(),
-      });
+  try {
+    const signature = sign(payload);
 
-      const url = new URL(MIKE_URL);
-      const client = url.protocol === 'https:' ? https : http;
-      const port = url.port ? parseInt(url.port, 10) : (url.protocol === 'https:' ? 443 : 80);
+    const res = await axios.post(MIKE_ENDPOINT, payload, {
+      timeout: 3000,
+      headers: {
+        'x-signature': signature
+      }
+    });
 
-      const req = client.request(
-        {
-          hostname: url.hostname,
-          port,
-          path: url.pathname + (url.search || ''),
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(body),
-          },
-        },
-        (res) => {
-          // Drain response to free the socket
-          res.resume();
-          console.log(`[mike] forwarded type="${type}" status=${res.statusCode}`);
-        }
-      );
+    const ack = res.data;
 
-      req.on('error', (err) => {
-        console.error(`[mike] forward error type="${type}":`, err.message);
-      });
-
-      // Set a 5-second timeout so a slow MIKE never keeps the socket open
-      req.setTimeout(5000, () => {
-        console.error(`[mike] forward timeout type="${type}"`);
-        req.destroy();
-      });
-
-      req.write(body);
-      req.end();
-    } catch (err) {
-      console.error(`[mike] forward failed type="${type}":`, err.message);
+    if (!verifyAck(ack)) {
+      console.error('[MIKE] INVALID ACK');
+      return;
     }
-  });
+
+    console.log('[MIKE] ACK OK');
+
+  } catch (err) {
+    console.error('[MIKE ERROR]', err.message);
+  }
 }
 
-module.exports = { forward };
+module.exports = { sendToMike };
+
