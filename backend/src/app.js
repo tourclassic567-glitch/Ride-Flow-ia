@@ -20,6 +20,9 @@ app.use('/pricing', pricingRoutes);
 // Radar observability
 app.use('/api/radar', require('./routes/radar'));
 
+// Events – publish to the internal event bus
+app.use('/api/events', require('./routes/events'));
+
 app.use(errorHandler);
 
 module.exports = app;
