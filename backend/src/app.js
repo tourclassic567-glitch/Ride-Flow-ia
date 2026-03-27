@@ -4,6 +4,7 @@ const cors = require('cors');
 const rideRoutes = require('./routes/ride');
 const pricingRoutes = require('./routes/pricing');
 const errorHandler = require('./middleware/errorHandler');
+const hmacAuth = require('./middleware/hmacAuth');
 
 const app = express();
 
@@ -20,8 +21,9 @@ app.use('/pricing', pricingRoutes);
 // Radar observability
 app.use('/api/radar', require('./routes/radar'));
 
-// Events – publish to the internal event bus
-app.use('/api/events', require('./routes/events'));
+// Protected routes – require valid HMAC signature
+app.use('/api/command', hmacAuth, require('./routes/command'));
+app.use('/api/events', hmacAuth, require('./routes/events'));
 
 app.use(errorHandler);
 
