@@ -20,13 +20,50 @@ class EventBus extends EventEmitter {
   }
 
   /**
-   * Publish (emit) an event to all registered subscribers.
+   * Publish (emit) an event to all registered subscribers synchronously.
    * @param {string} eventType - One of the eventTypes constants.
    * @param {object} payload   - Arbitrary event payload.
    */
   publish(eventType, payload) {
     this._publishCounts[eventType] = (this._publishCounts[eventType] || 0) + 1;
     this.emit(eventType, payload);
+  }
+
+  /**
+   * Publish an event non-blocking: each registered subscriber is scheduled
+   * via setImmediate so the caller can return a response before any
+   * subscriber logic runs.  Each subscriber is wrapped in try/catch and
+   * async-aware so promise-returning handlers are also guarded.
+   *
+   * @param {string} eventType - One of the eventTypes constants.
+   * @param {object} payload   - Arbitrary event payload.
+   */
+  publishAsync(eventType, payload) {
+    this._publishCounts[eventType] = (this._publishCounts[eventType] || 0) + 1;
+
+    const listeners = this.listeners(eventType);
+
+    for (const listener of listeners) {
+      setImmediate(() => {
+        console.log(`[eventBus] SUBSCRIBER START – ${eventType}`);
+        try {
+          const result = listener(payload);
+          if (result && typeof result.then === 'function') {
+            result
+              .then(() => console.log(`[eventBus] SUBSCRIBER END – ${eventType}`))
+              .catch((err) => {
+                console.error(`[eventBus] SUBSCRIBER ERROR – ${eventType}:`, err.message);
+                console.log(`[eventBus] SUBSCRIBER END – ${eventType}`);
+              });
+          } else {
+            console.log(`[eventBus] SUBSCRIBER END – ${eventType}`);
+          }
+        } catch (err) {
+          console.error(`[eventBus] SUBSCRIBER ERROR – ${eventType}:`, err.message);
+          console.log(`[eventBus] SUBSCRIBER END – ${eventType}`);
+        }
+      });
+    }
   }
 
   /**
@@ -84,4 +121,3 @@ class EventBus extends EventEmitter {
 
 // Export the singleton – the entire backend shares one bus.
 module.exports = new EventBus();
-
