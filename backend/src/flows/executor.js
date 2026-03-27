@@ -6,8 +6,13 @@
  */
 
 const engine = require('./engine');
+const lockState = require('../security/lockState');
 
 async function execute(flowName, context) {
+  if (lockState.isLocked()) {
+    throw new Error(`Flow execution refused: system is locked (FORCE_LOCK). Flow: ${flowName}`);
+  }
+
   const startTime = Date.now();
   let error = null;
 

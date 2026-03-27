@@ -23,6 +23,16 @@
  * EXECUTE syntax
  *   EXECUTE:RIDE_FLOW USER=001
  *     → flow: "ride-request-flow", context: { user_id: "001", ...payload }
+ *   EXECUTE:LOCK
+ *     → engage system lock; all subsequent flow executions are refused
+ *   EXECUTE:UNLOCK
+ *     → release system lock; flow executions are permitted again
+ *
+ * Lock state
+ *   Initial lock state is seeded from the FORCE_LOCK environment variable:
+ *     FORCE_LOCK=true  → server starts locked
+ *     (absent / false) → server starts unlocked (default)
+ *   Every response includes a "locked" boolean reflecting the current state.
  *
  * Flow name mapping (case-insensitive):
  *   RIDE_FLOW          → ride-request-flow
@@ -37,6 +47,7 @@ const router = express.Router();
 const telemetry = require('../observability/telemetry');
 const { sendToMike } = require('../integrations/mikeForwarder');
 const orchestrator = require('../flows/orchestrator');
+const lockState = require('../security/lockState');
 
 const DEFAULT_COMMAND_TYPE = 'command';
 
@@ -81,25 +92,34 @@ router.post('/', async (req, res) => {
   // can correlate telemetry, logs, and MIKE ACKs back to a single command.
   const executionId = crypto.randomUUID();
 
-  // ── EXECUTE:<FLOW> [KEY=VALUE …] dispatch ──────────────────────────────────
+  // ── EXECUTE:<FLOW|LOCK|UNLOCK> [KEY=VALUE …] dispatch ─────────────────────
   let flowResult = null;
   if (cmd && cmd.toUpperCase().startsWith('EXECUTE:')) {
     const parts = cmd.slice('EXECUTE:'.length).trim().split(/\s+/);
     const flowKey = parts[0].toUpperCase();
-    const flowName = FLOW_NAME_MAP[flowKey];
 
-    if (flowName) {
-      const params = parseParams(parts.slice(1));
-      const context = { ...pld, ...params, executionId };
-      // Run non-blocking so the HTTP response is not held up by flow latency.
-      setImmediate(async () => {
-        try {
-          await orchestrator.run(flowName, context);
-        } catch (err) {
-          telemetry.recordError('command', `flow dispatch failed: ${err.message}`);
-        }
-      });
-      flowResult = { dispatched: true, flow: flowName };
+    if (flowKey === 'LOCK') {
+      lockState.lock();
+      flowResult = { action: 'LOCK', locked: true };
+    } else if (flowKey === 'UNLOCK') {
+      lockState.unlock();
+      flowResult = { action: 'UNLOCK', locked: false };
+    } else {
+      const flowName = FLOW_NAME_MAP[flowKey];
+
+      if (flowName) {
+        const params = parseParams(parts.slice(1));
+        const context = { ...pld, ...params, executionId };
+        // Run non-blocking so the HTTP response is not held up by flow latency.
+        setImmediate(async () => {
+          try {
+            await orchestrator.run(flowName, context);
+          } catch (err) {
+            telemetry.recordError('command', `flow dispatch failed: ${err.message}`);
+          }
+        });
+        flowResult = { dispatched: true, flow: flowName };
+      }
     }
   }
 
@@ -118,6 +138,7 @@ router.post('/', async (req, res) => {
     keyId,
     timestamp,
     payload: pld,
+    locked: lockState.isLocked(),
     ...(flowResult && { flow: flowResult }),
   });
 });
