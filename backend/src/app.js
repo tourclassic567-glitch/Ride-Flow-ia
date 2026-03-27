@@ -24,8 +24,10 @@ app.use('/api/radar', require('./routes/radar'));
 // Telemetry – events, commands, and error tracking
 app.use('/api/telemetry', require('./routes/telemetry'));
 
-// Protected routes – require valid HMAC signature
-app.use('/api/command', hmacAuth, require('./routes/command'));
+// Public command endpoint – accepts unauthenticated external commands
+app.use('/api/command', require('./routes/command'));
+
+// Protected event endpoint – requires valid HMAC signature
 app.use('/api/events', hmacAuth, require('./routes/events'));
 
 app.use(errorHandler);
