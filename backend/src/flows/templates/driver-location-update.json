@@ -1,0 +1,30 @@
+{
+  "name": "driver-location-update-flow",
+  "version": "1.0.0",
+  "description": "Broadcast a driver location update event to all connected WebSocket clients",
+  "triggers": ["driver.location.updated"],
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Broadcast Location Update",
+      "type": "event",
+      "event": "driver.location.updated",
+      "data": {
+        "driver_id": "$.payload.driver_id",
+        "latitude": "$.payload.latitude",
+        "longitude": "$.payload.longitude",
+        "timestamp": "$.payload.timestamp"
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Emit Driver Status Changed",
+      "type": "event",
+      "event": "driver.status.changed",
+      "data": {
+        "driver_id": "$.payload.driver_id",
+        "status": "$.payload.status"
+      }
+    }
+  ]
+}
