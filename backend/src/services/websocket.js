@@ -65,7 +65,7 @@ function initWebSocket(server) {
   eventBus.subscribe(eventTypes.FLOW_FAILED, (payload) => {
     broadcast({
       type: 'FLOW_FAILED',
-      source: payload.source || payload.flowName,
+      source: payload.source || payload.flowName || 'unknown',
       error: payload.error,
     });
   });

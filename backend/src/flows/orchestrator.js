@@ -59,7 +59,7 @@ async function run(flowName, context, options = {}) {
   }
 
   eventBus.publish(eventTypes.FLOW_FAILED, {
-    flowName,
+    source: flowName,
     error: lastError.message,
     timestamp: new Date().toISOString(),
   });

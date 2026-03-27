@@ -104,7 +104,7 @@ register('ride-pricing-flow', async (ctx) => {
 
   const result = { ...ctx, base_fare, estimated_distance, price_per_mile, surge_multiplier, final_price };
 
-  eventBus.publish(eventTypes.RIDE_REQUESTED, { type: 'pricing', ...result });
+  eventBus.publish(eventTypes.RIDE_PRICING_CALCULATED, result);
 
   return result;
 });
@@ -121,7 +121,7 @@ register('ride-status-flow', async (ctx) => {
     [status, ride_id]
   );
 
-  eventBus.publish(eventTypes.RIDE_REQUESTED, { type: 'status_update', ride_id, status });
+  eventBus.publish(eventTypes.RIDE_STATUS_CHANGED, { ride_id, status });
 
   return ctx;
 });
