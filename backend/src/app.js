@@ -17,6 +17,9 @@ app.get('/health', (_req, res) => {
 app.use('/ride', rideRoutes);
 app.use('/pricing', pricingRoutes);
 
+// Radar observability
+app.use('/api/radar', require('./routes/radar'));
+
 app.use(errorHandler);
 
 module.exports = app;

@@ -12,6 +12,11 @@ initWebSocket(server);
 server.listen(PORT, async () => {
   console.log(`Ride-Flow IA backend running on port ${PORT}`);
 
+  // Initialize radar observability
+  const radar = require('./observability/radar');
+  radar.initialize();
+  console.log('✓ Radar observability initialized');
+
   // Attempt DB connection gracefully
   const result = await db.query('SELECT 1').catch((err) => {
     console.warn('Database not available – running in mock mode:', err.message);
