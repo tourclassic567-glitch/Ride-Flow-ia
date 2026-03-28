@@ -6,7 +6,9 @@
  * Responsibilities:
  *   - Accept flow-run requests from routes/controllers
  *   - Delegate execution to the executor
- *   - Handle retries with incremental back-off
+ *   - Handle retries with incremental back-off for transient errors
+ *   - Skip retries immediately for non-retryable errors (err.retryable === false,
+ *     e.g. LockError when FORCE_LOCK is active)
  *   - Emit FLOW_RETRY / FLOW_FAILED events for observability
  *   - Provide failure recovery (throws after exhausting retries)
  *
@@ -45,6 +47,13 @@ async function run(flowName, context, options = {}) {
     } catch (err) {
       lastError = err;
 
+      // Non-retryable errors (e.g. LockError) must fail immediately.
+      // Retrying a hard gate wastes time, emits spurious FLOW_RETRY events,
+      // and defeats the purpose of the lock.
+      if (err.retryable === false) {
+        break;
+      }
+
       if (attempt < maxRetries) {
         eventBus.publish(eventTypes.FLOW_RETRY, {
           flowName,
@@ -61,6 +70,7 @@ async function run(flowName, context, options = {}) {
   eventBus.publish(eventTypes.FLOW_FAILED, {
     source: flowName,
     error: lastError.message,
+    retryable: lastError.retryable !== false,
     timestamp: new Date().toISOString(),
   });
 
