@@ -1,17 +1,20 @@
 const express = require('express');
 const cors = require('cors');
-const morgan = require('morgan');
-const healthCheck = require('health-check');
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(morgan('combined'));
+app.use((req, _res, next) => {
+    console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+    next();
+});
 
 // Health Check Endpoint
-app.get('/health', healthCheck);
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime() });
+});
 
 // Example endpoint
 app.get('/api/example', (req, res) => {
