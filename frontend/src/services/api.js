@@ -7,9 +7,12 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+export const login = (data) => api.post('/auth/login', data);
 export const requestRide = (data) => api.post('/ride/request', data);
 export const matchRide = (data) => api.post('/ride/match', data);
 export const getRide = (id) => api.get(`/ride/${id}`);
 export const calculatePricing = (data) => api.post('/pricing/calculate', data);
+export const createPayment = (data) => api.post('/ride/pay', data);
+export const confirmPayment = (data) => api.post('/ride/pay/confirm', data);
 
 export default api;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { login } from '../../services/api';
 
 function Login({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -30,15 +31,27 @@ function Login({ onLogin }) {
     }
 
     setLoading(true);
-    // Simulate network delay for MVP
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setLoading(false);
-
-    onLogin({
-      id: Date.now(),
-      email: formData.email,
-      role: formData.role,
-    });
+    try {
+      const res = await login({
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+      });
+      onLogin(res.data);
+    } catch (err) {
+      if (err.response) {
+        setError(err.response.data?.error || 'Login failed. Please try again.');
+      } else {
+        // Backend unavailable – fall back to mock for demo purposes
+        onLogin({
+          id: Date.now(),
+          email: formData.email,
+          role: formData.role,
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -104,7 +117,7 @@ function Login({ onLogin }) {
         </form>
 
         <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          MVP demo – no real authentication
+          MVP demo – auto-registers on first sign-in when backend is available
         </p>
       </div>
     </div>
