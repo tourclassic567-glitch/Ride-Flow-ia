@@ -69,6 +69,29 @@ function initWebSocket(server) {
       error: payload.error,
     });
   });
+
+  // Broadcast every ride status change so clients can update their UI
+  // (e.g. show "Your driver is on the way", "Ride completed", etc.)
+  // without polling the REST endpoint.
+  eventBus.subscribe(eventTypes.RIDE_STATUS_CHANGED, (payload) => {
+    broadcast({
+      type: 'RIDE_STATUS_CHANGED',
+      ride_id: payload.ride_id,
+      status: payload.status,
+    });
+  });
+
+  // Broadcast flow retries so dashboards / admin UIs can surface transient
+  // issues in real time rather than discovering them only after a FLOW_FAILED.
+  eventBus.subscribe(eventTypes.FLOW_RETRY, (payload) => {
+    broadcast({
+      type: 'FLOW_RETRY',
+      flowName: payload.flowName,
+      attempt: payload.attempt,
+      maxRetries: payload.maxRetries,
+      error: payload.error,
+    });
+  });
 }
 
 // Internal broadcast helper – used only within this module.

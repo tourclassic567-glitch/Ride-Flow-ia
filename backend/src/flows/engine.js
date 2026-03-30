@@ -112,18 +112,76 @@ register('ride-pricing-flow', async (ctx) => {
 // ---------------------------------------------------------------------------
 // ride-status-flow
 // Updates ride status and emits a status-change notification.
+// When the ride reaches 'completed', automatically triggers the payment
+// pipeline by emitting PAYMENT_REQUESTED so the paymentSubscriber can
+// create the Stripe intent and emit PAYMENT_COMPLETED.
 // ---------------------------------------------------------------------------
 register('ride-status-flow', async (ctx) => {
   const { ride_id, status } = ctx;
 
-  await db.query(
-    `UPDATE rides SET status = $1 WHERE id = $2`,
-    [status, ride_id]
-  );
+  if (status === 'completed') {
+    await db.query(
+      `UPDATE rides SET status = $1, completed_at = NOW() WHERE id = $2`,
+      [status, ride_id]
+    );
+  } else {
+    await db.query(
+      `UPDATE rides SET status = $1 WHERE id = $2`,
+      [status, ride_id]
+    );
+  }
 
   eventBus.publish(eventTypes.RIDE_STATUS_CHANGED, { ride_id, status });
 
+  // Auto-trigger payment when a ride completes.
+  // Fetch the stored price so the payment amount is authoritative (never
+  // trusted from the caller).  Falls back to ctx.amount in mock/offline mode.
+  if (status === 'completed') {
+    let amount = ctx.amount || 0;
+    try {
+      const priceResult = await db.query(
+        `SELECT price FROM rides WHERE id = $1`,
+        [ride_id]
+      );
+      if (priceResult && priceResult.rows.length > 0 && priceResult.rows[0].price) {
+        amount = parseFloat(priceResult.rows[0].price);
+      }
+    } catch (_) {
+      // DB unavailable – continue with fallback amount
+    }
+    eventBus.publish(eventTypes.PAYMENT_REQUESTED, { ride_id, amount });
+  }
+
   return ctx;
+});
+
+// ---------------------------------------------------------------------------
+// ride-payment-flow
+// Explicit payment trigger flow.  Emits PAYMENT_REQUESTED so the
+// paymentSubscriber creates the Stripe intent and emits PAYMENT_COMPLETED.
+//
+// Callers must supply a valid amount (the flow trusts the context amount
+// only; callers that want the DB price should use ride-status-flow with
+// status='completed' which fetches the price itself).
+//
+// Dispatched via: EXECUTE:PAYMENT_FLOW
+// ---------------------------------------------------------------------------
+register('ride-payment-flow', async (ctx) => {
+  const { ride_id, amount } = ctx;
+
+  if (!ride_id) {
+    throw new Error('ride-payment-flow requires ride_id in context');
+  }
+
+  const paymentAmount = parseFloat(amount) || 0;
+
+  eventBus.publish(eventTypes.PAYMENT_REQUESTED, {
+    ride_id,
+    amount: paymentAmount,
+    timestamp: new Date().toISOString(),
+  });
+
+  return { ...ctx, payment_triggered: true, amount: paymentAmount };
 });
 
 module.exports = { flows, register, run };

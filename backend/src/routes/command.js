@@ -27,6 +27,8 @@
  * EXECUTE syntax
  *   EXECUTE:RIDE_FLOW USER=001
  *     → flow: "ride-request-flow", context: { user_id: "001", ...payload }
+ *   EXECUTE:PAYMENT_FLOW RIDE_ID=42 AMOUNT=10.50
+ *     → flow: "ride-payment-flow", context: { ride_id: "42", amount: "10.50", ...payload }
  *   EXECUTE:LOCK
  *     → engage system lock; all subsequent flow executions are refused
  *   EXECUTE:UNLOCK
@@ -43,6 +45,7 @@
  *   RIDE_MATCH_FLOW    → ride-match-flow
  *   RIDE_PRICING_FLOW  → ride-pricing-flow
  *   RIDE_STATUS_FLOW   → ride-status-flow
+ *   PAYMENT_FLOW       → ride-payment-flow
  */
 
 const crypto = require('crypto');
@@ -59,6 +62,7 @@ const FLOW_NAME_MAP = {
   RIDE_MATCH_FLOW: 'ride-match-flow',
   RIDE_PRICING_FLOW: 'ride-pricing-flow',
   RIDE_STATUS_FLOW: 'ride-status-flow',
+  PAYMENT_FLOW: 'ride-payment-flow',
 };
 
 /**

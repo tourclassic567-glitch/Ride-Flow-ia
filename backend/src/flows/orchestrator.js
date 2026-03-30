@@ -62,7 +62,7 @@ async function run(flowName, context, options = {}) {
           error: err.message,
           timestamp: new Date().toISOString(),
         });
-        await sleep(retryDelay * attempt); // incremental back-off: 500 ms, 1000 ms, …
+        await sleep(retryDelay * attempt); // incremental back-off: 500 ms, 1000 ms, 1500 ms, …
       }
     }
   }
