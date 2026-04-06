@@ -70,13 +70,13 @@ class DriverCommands {
     }
 
     resetDriverCommands() {
+        this._logEvent('commands_reset');
         this._autonomyActive = false;
         this._speedLimit = null;
         this._driverStatus = 'idle';
         this._events = [];
         this._driveParameters = {};
         this._emergencyStopped = false;
-        this._logEvent('commands_reset');
     }
 
     emergencyStop() {
