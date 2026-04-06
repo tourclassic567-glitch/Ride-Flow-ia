@@ -4,52 +4,93 @@
 
 class DriverCommands {
     constructor() {
-        // Initialize commands
+        this._autonomyActive = false;
+        this._speedLimit = null;
+        this._driverStatus = 'idle';
+        this._events = [];
+        this._driveParameters = {};
+        this._emergencyStopped = false;
     }
 
     activateAutonomy() {
-        // Code to activate driver autonomy protection
+        this._autonomyActive = true;
+        this._driverStatus = 'autonomous';
+        this._logEvent('autonomy_activated');
     }
 
     deactivateAutonomy() {
-        // Code to deactivate driver autonomy protection
+        this._autonomyActive = false;
+        this._driverStatus = 'manual';
+        this._logEvent('autonomy_deactivated');
     }
 
     setSpeedLimit(limit) {
-        // Code to set speed limit
+        if (typeof limit !== 'number' || limit < 0) {
+            throw new Error('Speed limit must be a non-negative number');
+        }
+        this._speedLimit = limit;
+        this._logEvent(`speed_limit_set:${limit}`);
     }
 
     monitorDriverStatus() {
-        // Code to monitor driver status
+        return {
+            status: this._driverStatus,
+            autonomyActive: this._autonomyActive,
+            speedLimit: this._speedLimit,
+            emergencyStopped: this._emergencyStopped,
+        };
     }
 
     alertDriver() {
-        // Code to alert the driver in case of an emergency
+        const alert = { type: 'emergency', timestamp: new Date().toISOString(), message: 'Emergency alert issued to driver' };
+        this._logEvent('driver_alerted');
+        console.warn('[DriverCommands] ALERT:', alert.message);
+        return alert;
     }
 
     logAutonomyEvents() {
-        // Code to log events related to autonomy
+        return [...this._events];
     }
 
     updateDriveParameters(params) {
-        // Code to update driving parameters based on conditions
+        if (params && typeof params === 'object') {
+            this._driveParameters = { ...this._driveParameters, ...params };
+            this._logEvent('drive_parameters_updated');
+        }
     }
 
     isAutonomyActive() {
-        // Code to check if autonomy is active
-        return true;
+        return this._autonomyActive;
     }
 
     overrideAutonomy() {
-        // Code to override autonomy if required
+        this._autonomyActive = false;
+        this._driverStatus = 'override';
+        this._logEvent('autonomy_overridden');
     }
 
     resetDriverCommands() {
-        // Code to reset all driver commands
+        this._autonomyActive = false;
+        this._speedLimit = null;
+        this._driverStatus = 'idle';
+        this._events = [];
+        this._driveParameters = {};
+        this._emergencyStopped = false;
+        this._logEvent('commands_reset');
     }
 
     emergencyStop() {
-        // Code to perform emergency stop
+        this._emergencyStopped = true;
+        this._autonomyActive = false;
+        this._driverStatus = 'stopped';
+        this._speedLimit = 0;
+        this._logEvent('emergency_stop');
+        this.alertDriver();
+        console.warn('[DriverCommands] EMERGENCY STOP activated. All operations halted.');
+    }
+
+    _logEvent(event) {
+        this._events.push({ event, timestamp: new Date().toISOString() });
     }
 }
 
