@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import RideList from './RideList';
 import { connect, subscribe, unsubscribe } from '../../services/websocket';
+import { rejectBooking } from '../../services/api';
 
 function DriverView({ user }) {
   const [isOnline, setIsOnline] = useState(false);
@@ -9,6 +10,7 @@ function DriverView({ user }) {
 
   const handleRideMatched = useCallback((message) => {
     setCurrentRide({
+      id: message.ride_id,
       ride_id: message.ride_id,
       driver_id: message.driver_id,
       status: 'matched',
@@ -27,10 +29,16 @@ function DriverView({ user }) {
   }, [handleRideMatched]);
 
   function handleCompleteRide() {
-    if (currentRide && currentRide.price) {
-      setEarnings((prev) => prev + parseFloat(currentRide.price || 10));
-    } else {
-      setEarnings((prev) => prev + 10);
+    const fare = parseFloat(currentRide?.estimated_price || currentRide?.price || 10);
+    setEarnings((prev) => prev + fare);
+    setCurrentRide(null);
+  }
+
+  async function handleCancelRide() {
+    try {
+      await rejectBooking(currentRide.id ?? currentRide.ride_id);
+    } catch {
+      // Non-fatal if backend unavailable
     }
     setCurrentRide(null);
   }
@@ -79,20 +87,35 @@ function DriverView({ user }) {
           <div className="ride-locations">
             <div className="location-row">
               <span>📍</span>
-              <span>Pickup: <strong>Assigned location</strong></span>
+              <span>Pickup: <strong>{currentRide.pickup_location || 'Assigned location'}</strong></span>
             </div>
             <div className="location-row">
               <span>🏁</span>
-              <span>Drop-off: <strong>Destination</strong></span>
+              <span>Drop-off: <strong>{currentRide.dropoff_location || 'Destination'}</strong></span>
             </div>
           </div>
-          <button
-            className="btn btn-success btn-lg"
-            style={{ marginTop: '1rem' }}
-            onClick={handleCompleteRide}
-          >
-            ✅ Complete Ride
-          </button>
+          {currentRide.estimated_price && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Fare</span>
+              <strong style={{ color: 'var(--primary)' }}>${parseFloat(currentRide.estimated_price).toFixed(2)}</strong>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+            <button
+              className="btn btn-success btn-lg"
+              style={{ flex: 1 }}
+              onClick={handleCompleteRide}
+            >
+              ✅ Complete Ride
+            </button>
+            <button
+              className="btn btn-danger btn-lg"
+              style={{ flex: 1 }}
+              onClick={handleCancelRide}
+            >
+              ❌ Cancel
+            </button>
+          </div>
         </div>
       )}
 

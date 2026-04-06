@@ -15,4 +15,10 @@ export const calculatePricing = (data) => api.post('/pricing/calculate', data);
 export const createPayment = (data) => api.post('/ride/pay', data);
 export const confirmPayment = (data) => api.post('/ride/pay/confirm', data);
 
+// Bookings
+export const getPendingBookings = () => api.get('/bookings/pending');
+export const createBooking = (data) => api.post('/bookings', data);
+export const acceptBooking = (id, driverId) => api.put(`/bookings/${id}/accept`, { driver_id: driverId });
+export const rejectBooking = (id) => api.put(`/bookings/${id}/reject`);
+
 export default api;

@@ -2,17 +2,22 @@
   "name": "Ride-Flow-ia",
   "version": "1.0.0",
   "description": "A ride flow application",
-  "main": "index.js",
+  "main": "dist/index.cjs",
   "scripts": {
-    "start": "node index.js",
+    "start": "node dist/index.cjs",
+    "build": "esbuild backend/src/index.js --bundle --platform=node --outfile=dist/index.cjs --format=cjs --external:pg-native --external:pg --external:dotenv --external:express --external:express-rate-limit --external:cors --external:ws --external:stripe",
     "health": "echo 'Health check passed'"
   },
   "dependencies": {
-    "express": "^4.17.1",
-    "ws": "^7.4.6",
     "cors": "^2.8.5",
-    "dotenv": "^10.0.0",
-    "pg": "^8.7.1",
-    "stripe": "^8.174.0"
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "express-rate-limit": "^8.3.1",
+    "pg": "^8.11.3",
+    "stripe": "^14.21.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.2"
   }
 }
