@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import RideRequest from './RideRequest';
+import OpenSourceFeed from '../OpenSourceFeed/OpenSourceFeed';
 import { connect, subscribe, unsubscribe } from '../../services/websocket';
 
 function PassengerView({ user }) {
@@ -101,6 +102,8 @@ function PassengerView({ user }) {
           )}
         </div>
       )}
+
+      <OpenSourceFeed />
     </div>
   );
 }
