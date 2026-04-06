@@ -26,24 +26,28 @@ Client (React)  ──HTTP──►  Express API  ──SQL──►  PostgreSQL
 
 ```
 Ride-Flow-ia/
-├── backend/              Node.js + Express API
+├── backend/                  Node.js + Express API
 │   ├── src/
-│   │   ├── index.js      Entry point (HTTP + WebSocket server)
-│   │   ├── app.js        Express app + routes
-│   │   ├── db/           PostgreSQL pool
-│   │   ├── routes/       ride.js, pricing.js
-│   │   ├── middleware/   validate.js, errorHandler.js
-│   │   ├── services/     matching.js, stripeService.js, websocket.js
-│   │   └── migrations/   001_initial.sql
+│   │   ├── index.js          Entry point (HTTP + WebSocket server)
+│   │   ├── app.js            Express app + routes
+│   │   ├── db/               PostgreSQL pool
+│   │   ├── routes/           auth.js, ride.js, pricing.js, bookings.js
+│   │   ├── middleware/       validate.js, errorHandler.js
+│   │   ├── services/         matching.js, stripeService.js, websocket.js,
+│   │   │                     bookingService.js, driverAutonomyProtection.js,
+│   │   │                     driverCommands.js
+│   │   └── migrations/       001_initial.sql
 │   └── railway.toml
-├── frontend/             React SPA
+├── frontend/                 React SPA
 │   ├── src/
 │   │   ├── App.js
-│   │   ├── components/   Auth, Passenger, Driver
-│   │   └── services/     api.js, websocket.js
+│   │   ├── components/       Auth, Passenger, Driver, OpenSourceFeed
+│   │   └── services/         api.js, websocket.js
 │   └── vercel.json
-└── database/
-    └── schema.sql
+├── database/
+│   └── schema.sql
+├── package.json              Root build & deploy config
+└── railway.toml              Railway deployment config
 ```
 
 ---

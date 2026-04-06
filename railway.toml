@@ -1,14 +1,7 @@
-# Nixpacks Configuration
+[build]
+builder = "NIXPACKS"
 
-# This configures Nixpacks for Node.js deployment
-
-builds:
-  - type: "npm"
-    env:
-      NODE_VERSION: "16"
-
-features:
-  - install:
-      packages:
-        - nodejs
-        - npm
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

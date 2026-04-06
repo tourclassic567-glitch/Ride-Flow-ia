@@ -1,1 +1,0 @@
-{\n  "name": "project_name",\n  "type": "node",\n  "env": {\n    "DATABASE_URL": "postgres://user:password@hostname:port/database"\n  },\n  "deployments": [\n    {\n      "type": "service",\n      "name": "service_name",\n      "url": "https://service.url"\n    }\n  ]\n}

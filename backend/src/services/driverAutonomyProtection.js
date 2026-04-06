@@ -20,8 +20,8 @@ class DriverAutonomyProtection {
     
     // Verify no penalties for a driver
     verifyNoPenalties(driverId) {
-        const hasPenalty = this.rejectionsWithoutPenalty.includes(driverId) || this.laborProtectionRegister.some(protection => protection.driverId === driverId);
-        return !hasPenalty;
+        const hasProtection = this.rejectionsWithoutPenalty.includes(driverId) || this.laborProtectionRegister.some(protection => protection.driverId === driverId);
+        return !hasProtection;
     }
 }
 
