@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS demand_metrics (
   id               SERIAL PRIMARY KEY,
   online_drivers   INT     NOT NULL DEFAULT 0,
   pending_rides    INT     NOT NULL DEFAULT 0,
-  surge_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00,
+  surge_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00 CHECK (surge_multiplier >= 1.00),
   recorded_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

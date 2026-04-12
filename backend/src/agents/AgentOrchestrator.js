@@ -46,13 +46,13 @@ class AgentOrchestrator {
       agent.start();
     }
 
-    // Graceful shutdown
-    const shutdown = () => {
+    // Graceful shutdown – store references so they can be removed if stop() is called
+    this._shutdownHandler = () => {
       console.log('[Orchestrator] Graceful shutdown – stopping all agents');
       this.stop();
     };
-    process.once('SIGTERM', shutdown);
-    process.once('SIGINT',  shutdown);
+    process.on('SIGTERM', this._shutdownHandler);
+    process.on('SIGINT',  this._shutdownHandler);
 
     console.log(`[Orchestrator] All ${this.agents.length} agents started`);
   }
@@ -60,6 +60,11 @@ class AgentOrchestrator {
   stop() {
     for (const agent of this.agents) {
       agent.stop();
+    }
+    if (this._shutdownHandler) {
+      process.off('SIGTERM', this._shutdownHandler);
+      process.off('SIGINT',  this._shutdownHandler);
+      this._shutdownHandler = null;
     }
     this._started = false;
   }

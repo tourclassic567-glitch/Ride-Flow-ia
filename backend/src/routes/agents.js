@@ -21,8 +21,12 @@ router.get('/metrics', (_req, res) => {
 
 // POST /agents/start
 router.post('/start', (_req, res) => {
-  orchestrator.start();
-  res.json({ message: 'Agent fleet started', status: orchestrator.status() });
+  try {
+    orchestrator.start();
+    res.json({ message: 'Agent fleet started', status: orchestrator.status() });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to start agent fleet', detail: err.message });
+  }
 });
 
 // POST /agents/stop

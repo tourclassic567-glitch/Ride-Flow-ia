@@ -56,10 +56,11 @@ class MonitoringAgent extends BaseAgent {
     }
 
     // --- Memory check ---
+    const memMbStr = memMb.toFixed(1);
     if (memMb > MEMORY_THRESHOLD_MB) {
-      console.warn(`[MonitoringAgent] High memory: ${memMb.toFixed(1)} MB`);
+      console.warn(`[MonitoringAgent] High memory: ${memMbStr} MB`);
       if (_broadcast) {
-        _broadcast({ type: 'SYSTEM_ALERT', severity: 'warning', message: `High memory usage: ${memMb.toFixed(1)} MB` });
+        _broadcast({ type: 'SYSTEM_ALERT', severity: 'warning', message: `High memory usage: ${memMbStr} MB` });
       }
       // Hint GC if running with --expose-gc
       if (global.gc) global.gc();
