@@ -5,6 +5,7 @@ const rideRoutes = require('./routes/ride');
 const pricingRoutes = require('./routes/pricing');
 const authRoutes = require('./routes/auth');
 const bookingRoutes = require('./routes/bookings');
+const agentRoutes = require('./routes/agents');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -20,6 +21,7 @@ app.use('/auth', authRoutes);
 app.use('/ride', rideRoutes);
 app.use('/pricing', pricingRoutes);
 app.use('/bookings', bookingRoutes);
+app.use('/agents', agentRoutes);
 
 app.use(errorHandler);
 

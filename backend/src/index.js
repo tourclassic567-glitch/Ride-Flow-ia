@@ -1,8 +1,9 @@
 require('dotenv').config();
 const http = require('http');
 const app = require('./app');
-const { initWebSocket } = require('./services/websocket');
+const { initWebSocket, broadcast } = require('./services/websocket');
 const db = require('./db');
+const orchestrator = require('./agents/AgentOrchestrator');
 
 const PORT = process.env.PORT || 3001;
 
@@ -20,4 +21,8 @@ server.listen(PORT, async () => {
   if (result) {
     console.log('Database connected successfully');
   }
+
+  // Start the autonomous AI agent fleet
+  orchestrator.start({ broadcast });
+  console.log('Autonomous agent fleet initialised');
 });
