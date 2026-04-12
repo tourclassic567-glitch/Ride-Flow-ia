@@ -189,6 +189,20 @@ Calculate dynamic pricing.
 
 ---
 
+## Production Domain
+
+The application is live at **[https://wolfida.com](https://wolfida.com)**.
+
+| Detail            | Value                                           |
+|-------------------|-------------------------------------------------|
+| Domain            | `wolfida.com`                                   |
+| DNS Provider      | Namecheap                                       |
+| Railway CNAME     | `function-bun-production-0f84.up.railway.app`   |
+
+See [DOMAIN_CONFIG.md](DOMAIN_CONFIG.md) for full DNS and Railway setup instructions.
+
+---
+
 ## Deployment
 
 ### Backend → Railway
