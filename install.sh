@@ -3,10 +3,11 @@
 #  Ride-Flow IA — One-command server installer
 #  Tested on Ubuntu 22.04 (Hetzner CX21 or larger)
 #
-#  Usage:
-#    curl -fsSL https://raw.githubusercontent.com/tourclassic567-glitch/Ride-Flow-ia/main/install.sh | bash
-#  or, after cloning:
-#    bash install.sh
+#  SECURITY NOTE: Always review a script before executing it as root.
+#  Download and inspect before running:
+#    curl -fsSL https://raw.githubusercontent.com/tourclassic567-glitch/Ride-Flow-ia/main/install.sh -o install.sh
+#    less install.sh   # review it
+#    sudo bash install.sh
 # ============================================================
 set -euo pipefail
 
@@ -44,7 +45,12 @@ apt-get install -y -qq \
 # ── 2. Node.js 20 ───────────────────────────────────────────
 if ! node --version 2>/dev/null | grep -q "^v${NODE_VERSION}"; then
   info "Installing Node.js ${NODE_VERSION}..."
-  curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash -
+  # NOTE: This downloads a setup script from NodeSource and executes it.
+  # Review the script at https://deb.nodesource.com/setup_20.x before proceeding.
+  NODESOURCE_SCRIPT=$(mktemp)
+  curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" -o "${NODESOURCE_SCRIPT}"
+  bash "${NODESOURCE_SCRIPT}"
+  rm -f "${NODESOURCE_SCRIPT}"
   apt-get install -y -qq nodejs
 fi
 info "Node.js $(node --version) ready"
@@ -231,7 +237,8 @@ echo "  Service       : systemctl status ${SERVICE_NAME}"
 echo "  Logs          : journalctl -u ${SERVICE_NAME} -f"
 echo "  API health    : curl http://localhost:3001/health"
 echo "  Agents status : curl http://localhost:3001/agents"
-echo "  DB connection : ${DATABASE_URL}"
+echo "  DB connection : postgresql://${DB_USER}:****@localhost/${DB_NAME}"
+echo "  Credentials   : ${SECRETS_FILE} (chmod 600)"
 echo ""
 echo "  Secrets saved to: ${SECRETS_FILE}"
 echo ""

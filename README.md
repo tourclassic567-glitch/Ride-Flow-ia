@@ -50,10 +50,14 @@ Ride-Flow-ia/
 
 ## One-Command Server Install (Hetzner / Ubuntu 22.04)
 
-Run this on a fresh Hetzner Cloud server (CX21 or larger, Ubuntu 22.04) as root:
+Run this on a fresh Hetzner Cloud server (CX21 or larger, Ubuntu 22.04) as root.  
+**Always review the script before executing it:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tourclassic567-glitch/Ride-Flow-ia/main/install.sh | bash
+# Download, review, then run
+curl -fsSL https://raw.githubusercontent.com/tourclassic567-glitch/Ride-Flow-ia/main/install.sh -o install.sh
+less install.sh          # review contents
+sudo bash install.sh
 ```
 
 Or, after cloning the repo:
