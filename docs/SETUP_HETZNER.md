@@ -25,7 +25,7 @@ with automated backups to a **Hetzner Storage Box**.
    - **SSH Keys**: select your key
 4. Click **Create & Buy now**.
 
-Note down the server **IPv4 address** (e.g. `123.456.789.0`).
+Note down the server **IPv4 address** (e.g. `123.45.67.89`).
 
 ---
 

@@ -52,7 +52,8 @@ class AnalyticsAgent extends BaseAgent {
       : [];
 
     // Keep rolling history for anomaly detection
-    this.surgeHistory = [...this.surgeHistory, ...surgeValues].slice(-200);
+    this.surgeHistory.push(...surgeValues);
+    this.surgeHistory = this.surgeHistory.slice(-200);
 
     const anomalies = this._detectAnomalies(this.surgeHistory);
 

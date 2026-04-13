@@ -28,15 +28,20 @@ function safeCompare(a, b) {
 
 /**
  * Extract the requesting IP, honouring X-Forwarded-For when behind a proxy.
+ * Returns null when the IP cannot be determined.
  */
 function getIP(req) {
   const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) return forwarded.split(',')[0].trim();
-  return req.socket?.remoteAddress || 'unknown';
+  if (forwarded) return forwarded.split(',')[0].trim() || null;
+  return req.socket?.remoteAddress || null;
 }
 
 module.exports = function adminAuth(req, res, next) {
   const ip = getIP(req);
+
+  if (!ip) {
+    return res.status(403).json({ error: 'Access denied – unable to determine client IP' });
+  }
 
   if (isBlocked(ip)) {
     return res.status(403).json({ error: 'Access denied – IP temporarily blocked' });

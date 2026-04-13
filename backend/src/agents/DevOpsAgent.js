@@ -59,9 +59,16 @@ class DevOpsAgent extends BaseAgent {
     if (HETZNER_USER && HETZNER_HOST) {
       const dest = `${HETZNER_USER}@${HETZNER_HOST}:backup/ride-flow`;
       try {
-        await rsync(BACKUP_DIR, dest);
-        health.hetznerBackup = { status: 'ok', dest };
-        console.log(`[DevOpsAgent] Hetzner backup → ${dest}`);
+        // Safety check: ensure source directory is non-empty before rsync --delete
+        const files = fs.readdirSync(BACKUP_DIR).filter((f) => !f.startsWith('.'));
+        if (files.length === 0) {
+          health.hetznerBackup = { status: 'skipped', reason: 'source directory is empty' };
+          console.warn('[DevOpsAgent] Hetzner backup skipped – BACKUP_DIR is empty');
+        } else {
+          await rsync(BACKUP_DIR, dest);
+          health.hetznerBackup = { status: 'ok', dest };
+          console.log(`[DevOpsAgent] Hetzner backup → ${dest}`);
+        }
       } catch (err) {
         health.hetznerBackup = { status: 'failed', error: err.message };
         console.warn(`[DevOpsAgent] Hetzner backup failed: ${err.message}`);

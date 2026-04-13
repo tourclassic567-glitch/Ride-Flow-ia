@@ -62,7 +62,7 @@ router.post('/ai/complete', (req, res) => {
   }
 
   // In production, replace this stub with a real LLM call (e.g. OpenAI, Anthropic).
-  const completion = `[AI response to: "${prompt.slice(0, 80)}${prompt.length > 80 ? '…' : ''}"]`;
+  const completion = `[AI response to: "${prompt.slice(0, 80)}${prompt.length > 80 ? '...' : ''}"]`;
 
   return res.json({
     model: process.env.AI_MODEL || 'gpt-mock',
