@@ -1,0 +1,182 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ride-Flow IA – Full Stack Docker Compose
+# One command: docker compose up -d
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-common-env: &common-env
+  ENVIRONMENT: ${ENVIRONMENT:-production}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-rideflow}:${POSTGRES_PASSWORD:-rideflow}@postgres:5432/${POSTGRES_DB:-rideflow}
+  REDIS_URL: redis://redis:6379/0
+
+services:
+
+  # ── Python AI Agent Server ─────────────────────────────────────────────────
+  agents:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rideflow-agents
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *common-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rideflow
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ── Node.js Backend ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: rideflow-backend
+    restart: unless-stopped
+    env_file: ../backend/.env.example
+    environment:
+      PORT: "3001"
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-rideflow}:${POSTGRES_PASSWORD:-rideflow}@postgres:5432/${POSTGRES_DB:-rideflow}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - rideflow
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: rideflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rideflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rideflow}
+      POSTGRES_DB: ${POSTGRES_DB:-rideflow}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/001_initial.sql:/docker-entrypoint-initdb.d/001_initial.sql:ro
+      - ../database/schema.sql:/docker-entrypoint-initdb.d/000_schema.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - rideflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rideflow} -d ${POSTGRES_DB:-rideflow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: rideflow-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - rideflow
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Prometheus ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: rideflow-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - rideflow
+    depends_on:
+      - agents
+
+  # ── Grafana ────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: rideflow-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - rideflow
+    depends_on:
+      - prometheus
+
+  # ── Redis Exporter (for Prometheus) ───────────────────────────────────────
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: rideflow-redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "9121:9121"
+    networks:
+      - rideflow
+    depends_on:
+      - redis
+
+  # ── Postgres Exporter (for Prometheus) ────────────────────────────────────
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: rideflow-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-rideflow}:${POSTGRES_PASSWORD:-rideflow}@postgres:5432/${POSTGRES_DB:-rideflow}?sslmode=disable"
+    ports:
+      - "9187:9187"
+    networks:
+      - rideflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+# ── Volumes ────────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+# ── Networks ───────────────────────────────────────────────────────────────────
+networks:
+  rideflow:
+    driver: bridge

@@ -1,6 +1,29 @@
 # 🚗 Ride-Flow IA
 
-An AI-powered ridesharing platform MVP built with Node.js + Express (backend) and React (frontend).
+An AI-powered ridesharing platform with an autonomous Python AI agent system, Node.js + Express backend, and React frontend.
+
+---
+
+## 🤖 AI Agent System (New)
+
+A fully autonomous Python AI agent system lives in [`ai-agents/`](./ai-agents/README.md).  
+**One-command deploy on Hetzner VPS:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tourclassic567-glitch/Ride-Flow-ia/main/ai-agents/scripts/setup.sh | bash
+```
+
+Or locally with Docker Compose:
+
+```bash
+cd ai-agents
+cp .env.example .env
+docker compose up -d
+# API docs → http://localhost:8000/docs
+# Grafana   → http://localhost:3000
+```
+
+See [`ai-agents/README.md`](./ai-agents/README.md) for full documentation.
 
 ---
 
@@ -10,15 +33,26 @@ An AI-powered ridesharing platform MVP built with Node.js + Express (backend) an
 Client (React)  ──HTTP──►  Express API  ──SQL──►  PostgreSQL
       │                        │
       └────WebSocket───────────┘
+
+Python AI Agents (FastAPI)
+  PricingAgent · MatchingAgent · MonitoringAgent
+  RevenueAgent · AnalyticsAgent · SecurityAgent
+      │                        │
+    Redis (pub/sub)       PostgreSQL
+      │
+  Prometheus ──► Grafana
 ```
 
-| Layer     | Technology                        |
-|-----------|-----------------------------------|
-| Frontend  | React 18, Axios, WebSocket client |
-| Backend   | Node.js, Express 4, ws            |
-| Database  | PostgreSQL (via `pg` pool)        |
-| Payments  | Stripe (test mode)                |
-| Deploy    | Railway (backend) + Vercel (frontend) |
+| Layer         | Technology                                  |
+|---------------|---------------------------------------------|
+| Frontend      | React 18, Axios, WebSocket client           |
+| Backend       | Node.js, Express 4, ws                      |
+| AI Agents     | Python 3.11, FastAPI, LangChain, CrewAI     |
+| Database      | PostgreSQL (via `pg` pool + asyncpg)        |
+| Cache / Queue | Redis 7 (pub/sub + key-value cache)         |
+| Payments      | Stripe (test mode)                          |
+| Monitoring    | Prometheus + Grafana                        |
+| Deploy        | Railway (backend) + Vercel (frontend) + Docker (agents) |
 
 ---
 
@@ -26,6 +60,13 @@ Client (React)  ──HTTP──►  Express API  ──SQL──►  PostgreSQL
 
 ```
 Ride-Flow-ia/
+├── ai-agents/            Python AI Agent system (NEW)
+│   ├── app/              FastAPI + autonomous agents
+│   ├── migrations/       PostgreSQL schema
+│   ├── monitoring/       Prometheus + Grafana config
+│   ├── scripts/          setup.sh (one-command VPS deploy)
+│   ├── docker-compose.yml Full stack
+│   └── README.md         Full documentation
 ├── backend/              Node.js + Express API
 │   ├── src/
 │   │   ├── index.js      Entry point (HTTP + WebSocket server)
