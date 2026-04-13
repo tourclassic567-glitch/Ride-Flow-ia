@@ -78,7 +78,8 @@ if [ ! -f "${COMPOSE_ENV}" ]; then
     cp "${APP_DIR}/.env.production" "${COMPOSE_ENV}"
 
     # Generate a random DB password
-    DB_PASS=$(tr -dc 'A-Za-z0-9!@#$%^&*' </dev/urandom 2>/dev/null | head -c 32 || echo "rideflow_$(date +%s)")
+    DB_PASS=$(tr -dc 'A-Za-z0-9!@#$%^&*' </dev/urandom 2>/dev/null | head -c 32) \
+        || { err "Cannot generate a secure password — /dev/urandom unavailable. Aborting."; }
     sed -i "s/CHANGE_ME_strong_password_here/${DB_PASS}/g" "${COMPOSE_ENV}"
 
     warn "⚠  Please edit ${COMPOSE_ENV} and set your STRIPE_SECRET_KEY before going live."

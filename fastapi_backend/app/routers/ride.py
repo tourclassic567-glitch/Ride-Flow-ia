@@ -1,3 +1,4 @@
+import logging
 import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -5,6 +6,8 @@ from pydantic import BaseModel
 from app import database as db
 from app.agents.pricing_agent import pricing_agent
 from app.services.stripe_service import create_payment_intent, confirm_payment
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -131,7 +134,7 @@ async def pay_ride(payload: RidePay):
             payload.ride_id, payload.amount, intent["id"],
         )
     except Exception as e:
-        print(f"Could not persist payment record: {e}")
+        logger.warning("Could not persist payment record — ride_id=%s amount=%s: %s", payload.ride_id, payload.amount, e)
 
     return {
         "ride_id": payload.ride_id,
@@ -151,7 +154,7 @@ async def confirm_ride_payment(payload: RidePayConfirm):
             payload.ride_id, payload.payment_intent_id,
         )
     except Exception as e:
-        print(f"Could not update payment status: {e}")
+        logger.warning("Could not update payment status — ride_id=%s pi=%s: %s", payload.ride_id, payload.payment_intent_id, e)
 
     return {
         "ride_id": payload.ride_id,
