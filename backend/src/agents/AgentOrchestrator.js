@@ -7,12 +7,16 @@
  *  • Exposes an aggregated status() snapshot for the /agents API route.
  *  • Handles graceful shutdown on SIGTERM / SIGINT.
  */
-const PricingAgent   = require('./PricingAgent');
-const MatchingAgent  = require('./MatchingAgent');
+const PricingAgent    = require('./PricingAgent');
+const MatchingAgent   = require('./MatchingAgent');
 const MonitoringAgent = require('./MonitoringAgent');
-const BackupAgent    = require('./BackupAgent');
-const RevenueAgent   = require('./RevenueAgent');
-const CleanupAgent   = require('./CleanupAgent');
+const BackupAgent     = require('./BackupAgent');
+const RevenueAgent    = require('./RevenueAgent');
+const CleanupAgent    = require('./CleanupAgent');
+const SecurityAgent   = require('./SecurityAgent');
+const AnalyticsAgent  = require('./AnalyticsAgent');
+const DevOpsAgent     = require('./DevOpsAgent');
+const ResourcesAgent  = require('./ResourcesAgent');
 
 class AgentOrchestrator {
   constructor() {
@@ -23,6 +27,10 @@ class AgentOrchestrator {
       BackupAgent,
       RevenueAgent,
       CleanupAgent,
+      SecurityAgent,
+      AnalyticsAgent,
+      DevOpsAgent,
+      ResourcesAgent,
     ];
     this._started = false;
   }
@@ -82,6 +90,10 @@ class AgentOrchestrator {
         pricing:    PricingAgent.getSurgeMultiplier?.() ?? null,
         monitoring: MonitoringAgent.getMetrics?.() ?? null,
         revenue:    RevenueAgent.getLastReport?.() ?? null,
+        analytics:  AnalyticsAgent.getLastSnapshot?.() ?? null,
+        devops:     DevOpsAgent.getLastHealth?.() ?? null,
+        resources:  ResourcesAgent.getLastSnapshot?.() ?? null,
+        security:   SecurityAgent.getStats?.() ?? null,
       },
     };
   }
