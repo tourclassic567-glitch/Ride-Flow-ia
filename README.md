@@ -48,7 +48,30 @@ Ride-Flow-ia/
 
 ---
 
-## Local Setup
+## One-Command Server Install (Hetzner / Ubuntu 22.04)
+
+Run this on a fresh Hetzner Cloud server (CX21 or larger, Ubuntu 22.04) as root:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tourclassic567-glitch/Ride-Flow-ia/main/install.sh | bash
+```
+
+Or, after cloning the repo:
+
+```bash
+sudo bash install.sh
+```
+
+The script automatically:
+- Installs Node.js 20, PostgreSQL, Nginx, Fail2Ban, UFW
+- Creates the database, applies the full schema, and seeds secrets
+- Installs backend npm packages and starts the `ride-flow` systemd service
+- Configures a reverse proxy on port 80
+
+After it finishes, follow the printed instructions to add your Stripe key and enable HTTPS with Certbot.  
+See [docs/SETUP_HETZNER.md](docs/SETUP_HETZNER.md) for the full step-by-step guide.
+
+---
 
 ### Prerequisites
 - Node.js ≥ 18

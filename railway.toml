@@ -1,14 +1,14 @@
-# Nixpacks Configuration
+[build]
+builder = "NIXPACKS"
 
-# This configures Nixpacks for Node.js deployment
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
 
-builds:
-  - type: "npm"
-    env:
-      NODE_VERSION: "16"
+[variables]
+NIXPACKS_NODE_VERSION = "20"
 
-features:
-  - install:
-      packages:
-        - nodejs
-        - npm
+# Custom domain: wolfida.com
+# CNAME: wolfida.com → function-bun-production-0f84.up.railway.app
+# DNS provider: Namecheap

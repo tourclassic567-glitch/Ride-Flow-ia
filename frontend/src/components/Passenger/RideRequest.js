@@ -34,7 +34,7 @@ function RideRequest({ user, onRideCreated }) {
       setStep('idle');
     } finally {
       setLoading(false);
-      if (step === 'pricing') setStep('idle');
+      setStep((s) => (s === 'pricing' ? 'idle' : s));
     }
   }
 
