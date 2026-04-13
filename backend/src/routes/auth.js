@@ -31,10 +31,20 @@ function verifyPassword(password, stored) {
   }
 }
 
+/** Record an auth failure for SecurityAgent to process */
+function recordAuthFailure(ip, detail) {
+  db.query(
+    `INSERT INTO security_events (event_type, ip, payload, created_at)
+     VALUES ('auth_failure', $1, $2::jsonb, NOW())`,
+    [ip, JSON.stringify({ detail })]
+  ).catch(() => {});
+}
+
 // POST /auth/login
 router.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const { email, password, role } = req.body;
+    const clientIp = req.ip || req.socket?.remoteAddress || null;
 
     if (!email || !email.trim()) {
       return res.status(400).json({ error: 'Email is required' });
@@ -53,6 +63,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
     if (result && result.rows.length > 0) {
       const user = result.rows[0];
       if (!verifyPassword(password, user.password_hash)) {
+        recordAuthFailure(clientIp, 'invalid_password');
         return res.status(401).json({ error: 'Invalid email or password' });
       }
       return res.json({ id: user.id, email: user.email, role: user.role });
@@ -74,6 +85,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
 
     // If email exists with different password
     if (insertResult && insertResult.rows.length === 0) {
+      recordAuthFailure(clientIp, 'conflict_no_insert');
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
