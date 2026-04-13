@@ -9,6 +9,9 @@
 const express = require('express');
 const router = express.Router();
 
+// Rough approximation: ~4 characters per token (stub purposes only)
+const CHARS_PER_TOKEN = 4;
+
 // ---------------------------------------------------------------------------
 // POST /api/v1/services/ai/complete
 // ---------------------------------------------------------------------------
@@ -27,9 +30,9 @@ router.post('/ai/complete', (req, res) => {
     prompt,
     completion,
     usage: {
-      prompt_tokens: Math.ceil(prompt.length / 4),
+      prompt_tokens: Math.ceil(prompt.length / CHARS_PER_TOKEN),
       completion_tokens: maxTokens,
-      total_tokens: Math.ceil(prompt.length / 4) + maxTokens,
+      total_tokens: Math.ceil(prompt.length / CHARS_PER_TOKEN) + maxTokens,
     },
     generatedAt: new Date().toISOString(),
   });

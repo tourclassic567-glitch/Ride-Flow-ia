@@ -98,18 +98,23 @@ class AnalyticsAgent extends BaseAgent {
 
   /**
    * Flag hours where avgDemand deviates more than 2 standard deviations from the mean.
+   * Uses sample variance (N-1) for a more accurate estimate.
    */
   _detectAnomalies(hourlyDemand) {
     if (hourlyDemand.length < 3) return [];
 
     const values = hourlyDemand.map((h) => h.avgDemand);
     const mean   = values.reduce((s, v) => s + v, 0) / values.length;
-    const variance = values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / values.length;
+    // Use sample variance (N-1) for statistical correctness
+    const variance = values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / (values.length - 1);
     const stdDev = Math.sqrt(variance);
+
+    // No anomalies can exist when all values are identical (zero variance)
+    if (stdDev === 0) return [];
 
     return hourlyDemand
       .filter((h) => Math.abs(h.avgDemand - mean) > 2 * stdDev)
-      .map((h) => ({ ...h, deviation: parseFloat(((h.avgDemand - mean) / (stdDev || 1)).toFixed(2)) }));
+      .map((h) => ({ ...h, deviation: parseFloat(((h.avgDemand - mean) / stdDev).toFixed(2)) }));
   }
 
   getLastSnapshot() {

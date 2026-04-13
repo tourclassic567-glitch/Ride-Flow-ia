@@ -64,6 +64,9 @@ class ResourcesAgent extends BaseAgent {
     if (memMb > MEMORY_THRESHOLD_MB) {
       alerts.push(`High memory: ${memMb} MB (threshold ${MEMORY_THRESHOLD_MB} MB)`);
       this.metrics.scaleHint = 'scale-up';
+      // global.gc() is only available when Node.js is started with --expose-gc.
+      // Add that flag to your systemd ExecStart or process manager command
+      // to enable GC hints from this agent.
       if (global.gc) global.gc();
     }
 
