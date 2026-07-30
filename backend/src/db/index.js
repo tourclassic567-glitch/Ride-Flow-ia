@@ -1,16 +1,63 @@
 const { Pool } = require('pg');
 
-let pool = null;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 500;
 
-if (process.env.DATABASE_URL) {
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
-} else {
-  console.warn('DATABASE_URL not set – DB queries will return null (mock mode)');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
+    : false
+});
+
+function log(event, input, output, status) {
+  console.log(JSON.stringify({
+    event,
+    input,
+    output,
+    status,
+    timestamp: new Date().toISOString()
+  }));
 }
 
-async function query(text, params) {
-  if (!pool) return null;
-  return pool.query(text, params);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-module.exports = { query };
+async function query(text, params = [], attempt = 1) {
+  try {
+    return await pool.query(text, params);
+  } catch (error) {
+    log('db_query', { text, params, attempt }, { message: error.message }, 'error');
+
+    if (attempt < MAX_RETRIES) {
+      await sleep(RETRY_DELAY_MS);
+      return query(text, params, attempt + 1);
+    }
+
+    throw error;
+  }
+}
+
+async function checkConnection() {
+  await query('SELECT 1');
+  return true;
+}
+
+async function initDbOrFail() {
+  try {
+    await checkConnection();
+    log('db_init', {}, { connected: true }, 'success');
+  } catch (error) {
+    log('db_init', {}, { message: error.message }, 'error');
+    process.exit(1);
+  }
+}
+
+module.exports = {
+  pool,
+  query,
+  checkConnection,
+  initDbOrFail,
+  log
+};
